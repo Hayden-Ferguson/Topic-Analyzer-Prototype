@@ -40,6 +40,7 @@ def load_documents():
     print(f"Found {len(documents)} sources")
     return documents
 
+
 def chunk_documents(documents, chunk_size=1000, chunk_overlap=200):
     '''Split documents into smaller chunks for better processing.'''
     
@@ -71,6 +72,7 @@ def get_embeddings(texts: List[str]):
     response = client.models.embed_content(model=EMBEDDING_MODEL, contents=texts)
     return [embedding.values for embedding in response.embeddings]
 
+
 def embed_documents(chunks, namespace):
     '''Embed documents and store them in Pinecone.'''
 
@@ -80,6 +82,8 @@ def embed_documents(chunks, namespace):
     # Prepare batches (Pinecone usually works well with batches of ~100)
     batch_size = 100
     for i in range(0, len(chunks), batch_size):
+        if i!=0:
+            time.sleep(60) #here to prevent exceeding 100 embedding requests per minute limit for free keys
         chunk_batch = chunks[i:i+batch_size]
         
         # Get text from each chunk
@@ -99,7 +103,7 @@ def embed_documents(chunks, namespace):
         
         # Upsert to Pinecone
         index.upsert(vectors=vectors, namespace=namespace)
-        time.sleep(60) #here to prevent exceeding 100 embedding requests per minute limit for free keys
+
 
 def search_documents(query, namespace, top_k=5):
     '''Search the vector store with the user query.'''
@@ -128,7 +132,8 @@ def search_documents(query, namespace, top_k=5):
     
     return docs_with_scores
 
-def get_analysis(query, documents):
+
+def get_analysis(topic, documents):
     """Ask OpenAI to perform the response"""
 
     # Join all documents into a single context string
@@ -137,12 +142,12 @@ def get_analysis(query, documents):
     # Create messages for Gemini
     messages = [
         (
-            "Provide an answer to the user's query about Berkshire Hathaway."
+            f"Find and summarize trends relating to the topic of {topic}."
             "Various sources will be provided will be provided."
-            "Use those documents to best answer the question."
+            "Use only those documents to find trends."
+            "If none of the documents are related to the topic, you may simply say so."
         ),
         f"Documents: {context}",
-        query
     ]
 
     #Call Gemini API
@@ -152,6 +157,16 @@ def get_analysis(query, documents):
     )
     
     return response.text
+
+def get_human_confirmation(prompt):
+    """Get human confirmation for a suggestion."""
+    while True:
+        choice = input(f"{prompt} (y/n): ").lower().strip()
+        if choice in ['y', 'n']:
+            return choice == 'y'
+        print("Please enter 'y' or 'n'")
+
+
 
 if __name__ == "__main__":
     if not pc.has_index(INDEX_NAME): #Create index if it doesn't exist
@@ -164,19 +179,34 @@ if __name__ == "__main__":
             )
         )
 
-    # Step 1: Load document embeddings into Pinecone - only run this the first time
+    # Step 1: Load document embeddings into Pinecone - this will only be done when 'read' is put into command line
     docs = load_documents()
     chunks = chunk_documents(docs)
     embed_documents(chunks, namespace="chunks")
 
-    # Step 2: Write a query
-    user_query = "?"
-
-    # Step 3: Check Pinecone for similar chunks
-    docs_and_scores = search_documents(query=user_query, namespace="chunks")
-    for _, score in docs_and_scores:
-        print(f"Score: {score}")
+    # Step 2: Decide on topics
+    topics = ["equality", "economy", "politics"] 
+    #Feel free to edit this to suit your needs instead of specifying every time you run it
+    print(f"The current topics are {topics}")
+    loop = not get_human_confirmation("Would you like to use these topics?")
+    while(loop): #add or remove topics
+        print("What topics would you like to change?")
+        topic = input("Type a topic to add it if it isn't there, and remove it if it is.").strip()
+        if topic in topics:
+            topics.remove(topic)
+        else:
+            topics.append(topic)
+        print(f"The current topics are {topics}")
+        loop = not get_human_confirmation("Would you like to use these topics?")
     
-    # Step 4: Put docs into prompt and send to OpenAI
-    response = get_analysis(user_query, docs_and_scores)
-    print(response) 
+    #Loop through every topic
+    for topic in topics:
+
+        # Step 3: Check Pinecone for similar chunks
+        docs_and_scores = search_documents(query=topic, namespace="chunks")
+        for _, score in docs_and_scores:
+            print(f"Score: {score}")
+        
+        # Step 4: Put docs into prompt and send to OpenAI
+        response = get_analysis(topic, docs_and_scores)
+        print(response) 

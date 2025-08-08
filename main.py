@@ -11,6 +11,7 @@ from typing import List
 from google import genai
 from google.genai import types
 import time
+import sys
 
 
 # Constants
@@ -180,9 +181,10 @@ if __name__ == "__main__":
         )
 
     # Step 1: Load document embeddings into Pinecone - this will only be done when 'read' is put into command line
-    docs = load_documents()
-    chunks = chunk_documents(docs)
-    embed_documents(chunks, namespace="chunks")
+    if argv[1]=="read":
+        docs = load_documents()
+        chunks = chunk_documents(docs)
+        embed_documents(chunks, namespace="chunks")
 
     # Step 2: Decide on topics
     topics = ["equality", "economy", "politics"] 

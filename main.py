@@ -181,7 +181,7 @@ if __name__ == "__main__":
         )
 
     # Step 1: Load document embeddings into Pinecone - this will only be done when 'read' is put into command line
-    if argv[1]=="read":
+    if len(sys.argv) > 1 and sys.argv[1]=="read":
         docs = load_documents()
         chunks = chunk_documents(docs)
         embed_documents(chunks, namespace="chunks")
@@ -190,16 +190,16 @@ if __name__ == "__main__":
     topics = ["equality", "economy", "politics"] 
     #Feel free to edit this to suit your needs instead of specifying every time you run it
     print(f"The current topics are {topics}")
-    loop = not get_human_confirmation("Would you like to use these topics?")
+    loop = not get_human_confirmation("Would you like to use these topics?\n")
     while(loop): #add or remove topics
         print("What topics would you like to change?")
-        topic = input("Type a topic to add it if it isn't there, and remove it if it is.").strip()
+        topic = input("Type a topic to add it if it isn't there, and remove it if it is.\n").strip()
         if topic in topics:
             topics.remove(topic)
         else:
             topics.append(topic)
         print(f"The current topics are {topics}")
-        loop = not get_human_confirmation("Would you like to use these topics?")
+        loop = not get_human_confirmation("Would you like to use these topics?\n")
     
     #Loop through every topic
     for topic in topics:

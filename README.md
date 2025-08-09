@@ -7,8 +7,11 @@ Due to being a prototype, a method of collecting sources is not provided.
 
 <h2>Requirements</h2>
 Python 3.11 or higher
+
 Pydantic 2.0 or higher
+
 Pinecone API Key
+
 Gemini API Key
 
 <h2>Installation</h2>

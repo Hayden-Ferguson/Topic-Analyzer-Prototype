@@ -41,7 +41,8 @@ def load_documents():
     for file_path in files:
         with open(file_path, 'r', encoding="utf8") as file:
             content = file.read()
-            documents.append({"content": content, "metadata": {"source": file_path}})
+            source = os.path.basename(file_path)
+            documents.append({"content": content, "metadata": {"path": file_path, "source": source}})
     
     print(f"Found {len(documents)} sources")
     return documents
@@ -133,9 +134,9 @@ def search_documents(query, namespace, top_k=5):
     docs_with_scores = []
     for match in results["matches"]:
         # Load the document content based on the source file
-        with open(match["metadata"]["source"], 'r', encoding="utf-8") as f:
+        with open(match["metadata"]["path"], 'r', encoding="utf-8") as f:
             content = f.read()
-        docs_with_scores.append((content, match["score"]))
+        docs_with_scores.append((content, match["metadata"]["source"], match["score"]))
     
     return docs_with_scores
 
@@ -144,15 +145,17 @@ def get_analysis(topic, documents):
     """Ask OpenAI to perform the response"""
 
     # Join all documents into a single context string
-    context = "\n\n".join([doc for doc, _ in documents])
+    context = ""
+    for doc, source, _ in documents:
+        context += f"Source: {source}\n{doc}\n\n"
+    #context = "\n\n".join([doc for doc, _ in documents])
     
     # Create messages for Gemini
     messages = [
         (
             f"Find and summarize trends relating to the topic of {topic}."
-
             "Various sources will be provided will be provided."
-            "Use only those documents to find trends."
+            "Use only those documents to find trends, and record which source you use to find each trend."
             "If none of the documents are related to the topic, you may simply say so."
         ),
         f"Documents: {context}",

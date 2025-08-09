@@ -12,6 +12,7 @@ from google import genai
 from google.genai import types
 import time
 import sys
+from pydantic import BaseModel
 
 
 # Constants
@@ -24,6 +25,10 @@ INDEX_NAME = "sources"
 # Initialize Gemini and Pinecone clients
 client = genai.Client(api_key=GEMINI_API_KEY)
 pc = Pinecone(PINECONE_API_KEY)
+
+class Trend(BaseModel):
+    trend: str
+    sources: list[str]
 
 def load_documents():
     '''Load all text documents from the sources directory.'''
@@ -84,6 +89,7 @@ def embed_documents(chunks, namespace):
     batch_size = 100
     for i in range(0, len(chunks), batch_size):
         if i!=0:
+            print("Waiting to prevent from reaching API request minute limit")
             time.sleep(60) #here to prevent exceeding 100 embedding requests per minute limit for free keys
         chunk_batch = chunks[i:i+batch_size]
         
@@ -144,6 +150,7 @@ def get_analysis(topic, documents):
     messages = [
         (
             f"Find and summarize trends relating to the topic of {topic}."
+
             "Various sources will be provided will be provided."
             "Use only those documents to find trends."
             "If none of the documents are related to the topic, you may simply say so."
@@ -154,7 +161,11 @@ def get_analysis(topic, documents):
     #Call Gemini API
     response = client.models.generate_content(
         model=CHAT_MODEL,
-        contents=messages
+        contents=messages,
+        config={
+            'response_mime_type': 'application/json',
+            'response_schema': list[Trend],
+        },
     )
     
     return response.text
@@ -203,12 +214,13 @@ if __name__ == "__main__":
     
     #Loop through every topic
     for topic in topics:
-
+        print(f"These trends are in the topic of {topic}")
         # Step 3: Check Pinecone for similar chunks
         docs_and_scores = search_documents(query=topic, namespace="chunks")
-        for _, score in docs_and_scores:
-            print(f"Score: {score}")
+        #for _, score in docs_and_scores:
+        #    print(f"Score: {score}")
         
         # Step 4: Put docs into prompt and send to OpenAI
         response = get_analysis(topic, docs_and_scores)
         print(response) 
+        print("\n\n")

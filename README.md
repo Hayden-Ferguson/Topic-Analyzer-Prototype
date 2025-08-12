@@ -39,5 +39,7 @@ Otherwise, to save time and resources, run it without adding "read":
 
 ```python .\main.py```
 
+Example of use can be found here: https://youtu.be/srcpBZvg9Rs
+
 <h2>License</h2>
 This project is provided "as is" under the MIT License. Feel free to use, modify, and distribute it as you wish.

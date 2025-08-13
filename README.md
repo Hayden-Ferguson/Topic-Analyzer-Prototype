@@ -29,7 +29,7 @@ Gemini API Key
 ```export PINECONE_API_KEY='your-api-key-here'  # On Windows, for coomand prompt use: set PINECONE_API_KEY=your-api-key-here #For Powershell use $env:PINECONE_API_KEY="your_api_key_here"```
 
 <h2>Usage</h2>
-Add any sources you want to use into the /sources folder as .txt files. Do note that if you delete a source, you should manually delete the Pinecone database storing it (sources be default) to prevent errors.
+Add any sources you want to use into the /sources folder as .txt files. Do note that if you delete a source that has been read into your Pinecone database, you should manually delete the Pinecone database storing it (sources be default) and reupload your sources to Pinecone using "read" to prevent errors. The current files are only for use as examples, feel free to delete them.
 
 Whenever you want update your database of sources, such as the first time you run this, add "read" to your command line, like so:
 
